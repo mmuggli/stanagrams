@@ -4,15 +4,16 @@ import Lib
 import System.IO
 import Data.List
 import qualified Data.Map as M
-import qualified Data.IntSet as S
+import qualified Data.IntSet as IS
 import Data.List.Split
+import qualified Data.Set as S
 
 -- copied from https://rosettacode.org/wiki/Inverted_index#Haskell on Feb 3, 2021
 -- we swap (Char, Int) for String
 -- and String for FilePath
 data IIndex = IIndex
     [String]              -- documents in the index
-    (M.Map (Char, Int) S.IntSet) -- Maps "word" (char, occurance) to indices of the list
+    (M.Map (Char, Int) IS.IntSet) -- Maps "word" (char, occurance) to indices of the list
   deriving Show
 
 
@@ -26,15 +27,15 @@ buildII documents =
             foldl g amap $ wordify document_contents
 
             -- add a word to a map
-          where g amap word = M.insertWith S.union word (S.singleton document_num) amap
+          where g amap word = M.insertWith IS.union word (IS.singleton document_num) amap
 
 queryII :: [(Char, Int)] -> IIndex -> [String]
 queryII q (IIndex documents m) =
-    map (documents !!) $ S.toList $ intersections $
-    map (\word -> M.findWithDefault S.empty word m) q
+    map (documents !!) $ IS.toList $ intersections $
+    map (\word -> M.findWithDefault IS.empty word m) q
  
-intersections [] = S.empty
-intersections xs = foldl1 S.intersection xs
+intersections [] = IS.empty
+intersections xs = foldl1 IS.intersection xs
 
 
 -- my stuff (i.e. end of code from rosettacode)
@@ -49,16 +50,30 @@ wordify s = let groups = group $ sort s in
 index_size :: IIndex -> Int
 index_size (IIndex documents the_map) = M.size the_map
 
-get_map :: IIndex -> (M.Map (Char, Int) S.IntSet)
+get_map :: IIndex -> (M.Map (Char, Int) IS.IntSet)
 get_map (IIndex documents the_map) = the_map
+
+make_adjlist :: [[String]] -> M.Map String (S.Set String)
+make_adjlist sll = foldl f M.empty sll
+  where f amap sl = M.insert (head sl) (S.fromList $ tail sl) amap
+
+states :: [[String]] -> [String] 
+states sll = map head sll
+
+-- get_paths :: String -> Int -> M.Map String (S.Set String) -> [[String]]
+-- get_paths start 0 adjlist = [[start]]
+-- get_paths start num_remaining adjlist = fmap (\x -> [start] : \x) (M.find start
 
 main :: IO ()
 main = do
   -- grab the state adjacency data from https://writeonly.wordpress.com/2009/03/20/adjacency-list-of-states-of-the-united-states-us/
-  myfile2 <- openFile "/home/muggli/stateadj.txt" ReadMode
+  myfile2 <- openFile "/home/muggli/stateadjs.txt" ReadMode
   statecontents <- hGetContents myfile2
   let mylines2 = lines statecontents
   let mystates = map (splitOn [',']) mylines2
+  let adjlist = make_adjlist mystates
+  putStrLn ("States: " ++ (show $ states mystates))
+  putStrLn ("keys: " ++ (show $ M.keys adjlist))
   hClose myfile2
   -- myfile <- openFile "/home/muggli/count_1w7.txt" ReadMode
   -- contents <- hGetContents myfile

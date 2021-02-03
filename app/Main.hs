@@ -27,8 +27,16 @@ buildII documents =
             -- add a word to a map
           where g amap word = M.insertWith S.union word (S.singleton document_num) amap
 
+queryII :: [(Char, Int)] -> IIndex -> [String]
+queryII q (IIndex documents m) =
+    map (documents !!) $ S.toList $ intersections $
+    map (\word -> M.findWithDefault S.empty word m) q
+ 
+intersections [] = S.empty
+intersections xs = foldl1 S.intersection xs
 
 
+-- my stuff (i.e. end of code from rosettacode)
 
 enumerate :: String -> [(Char, Int)]
 enumerate s = zip s [1..]
@@ -45,13 +53,14 @@ get_map (IIndex documents the_map) = the_map
 
 main :: IO ()
 main = do
-  myfile <- openFile "/home/muggli/count_1w.txt" ReadMode
+  myfile <- openFile "/home/muggli/count_1w7.txt" ReadMode
   contents <- hGetContents myfile
   let mylines = lines contents
   let mywords = map  (head . words ) mylines
   let theindex = buildII mywords
   putStrLn ("Map size: "  ++ (show $ index_size theindex))
   putStrLn ("vocabulary: " ++  (show $ M.keys $ get_map theindex))
+  putStrLn ("query results for 'of': " ++ (show $ queryII (wordify "of") theindex))
   --putStrLn $ show $ get_map theindex
   -- putStrLn $ show $ wordify $ head mywords -- 
   hClose myfile

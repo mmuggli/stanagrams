@@ -7,6 +7,7 @@ import qualified Data.Map as M
 import qualified Data.IntSet as IS
 import Data.List.Split
 import qualified Data.Set as S
+import Data.Char (isAlpha, toLower)
 
 -- copied from https://rosettacode.org/wiki/Inverted_index#Haskell on Feb 3, 2021
 -- we swap (Char, Int) for String
@@ -67,7 +68,11 @@ get_paths start num_remaining adjlist = let neighbors = S.elems (adjlist M.! sta
                                             f = (\state -> get_paths state (num_remaining - 1) adjlist) ::  String -> [[String]]
                                         in fmap (start :) suffixes
 
-  
+
+lowercase = map toLower
+
+words_for_state adjlist state = fmap lowercase $ fmap concat $ get_paths state 3 adjlist
+
 main :: IO ()
 main = do
   -- grab the state adjacency data from https://writeonly.wordpress.com/2009/03/20/adjacency-list-of-states-of-the-united-states-us/
@@ -78,16 +83,23 @@ main = do
   let adjlist = make_adjlist mystates
   putStrLn ("States: " ++ (show $ states mystates))
   putStrLn ("keys: " ++ (show $ M.keys adjlist))
-  putStrLn ("CO paths len 4: " ++ (show $ get_paths "CO" 3 adjlist))
+  putStrLn ("CO paths len 4: " ++ (show $ words_for_state  adjlist "CO"))
+  let allwords = concat $ fmap (words_for_state adjlist) $ states mystates
+  putStrLn ("all words number: " ++ (show $ length $ allwords))
   hClose myfile2
-  -- myfile <- openFile "/home/muggli/count_1w7.txt" ReadMode
-  -- contents <- hGetContents myfile
-  -- let mylines = lines contents
-  -- let mywords = map  (head . words ) mylines
-  -- let theindex = buildII mywords
-  -- putStrLn ("Map size: "  ++ (show $ index_size theindex))
-  -- putStrLn ("vocabulary: " ++  (show $ M.keys $ get_map theindex))
-  -- putStrLn ("query results for 'of': " ++ (show $ queryII (wordify "of") theindex))
-  -- --putStrLn $ show $ get_map theindex
-  -- -- putStrLn $ show $ wordify $ head mywords -- 
-  -- hClose myfile
+  
+  myfile <- openFile "/home/muggli/count_1w.txt" ReadMode
+  contents <- hGetContents myfile
+  let mylines = lines contents
+  let mywords = map  (head . words ) mylines
+  let theindex = buildII $ (filter (\y -> 8 == length y)) mywords
+  putStrLn ("Map size: "  ++ (show $ index_size theindex))
+  putStrLn ("vocabulary: " ++  (show $ M.keys $ get_map theindex))
+--    putStrLn ("query results for 'of': " ++ (show $ queryII (wordify "of") theindex))
+  let get_anagrams = (\targetword -> queryII (wordify targetword) theindex)
+  let positive_paths = (filter (\z -> (length $ get_anagrams z) > 0) allwords)
+  let allstatewords = zip positive_paths (fmap get_anagrams  positive_paths)
+  putStrLn ("total stanagrams: " ++ (show $  allstatewords))
+  --putStrLn $ show $ get_map theindex
+  -- putStrLn $ show $ wordify $ head mywords -- 
+  hClose myfile

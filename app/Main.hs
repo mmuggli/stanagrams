@@ -5,6 +5,7 @@ import System.IO
 import Data.List
 import qualified Data.Map as M
 import qualified Data.IntSet as S
+import Data.List.Split
 
 -- copied from https://rosettacode.org/wiki/Inverted_index#Haskell on Feb 3, 2021
 -- we swap (Char, Int) for String
@@ -53,14 +54,20 @@ get_map (IIndex documents the_map) = the_map
 
 main :: IO ()
 main = do
-  myfile <- openFile "/home/muggli/count_1w7.txt" ReadMode
-  contents <- hGetContents myfile
-  let mylines = lines contents
-  let mywords = map  (head . words ) mylines
-  let theindex = buildII mywords
-  putStrLn ("Map size: "  ++ (show $ index_size theindex))
-  putStrLn ("vocabulary: " ++  (show $ M.keys $ get_map theindex))
-  putStrLn ("query results for 'of': " ++ (show $ queryII (wordify "of") theindex))
-  --putStrLn $ show $ get_map theindex
-  -- putStrLn $ show $ wordify $ head mywords -- 
-  hClose myfile
+  -- grab the state adjacency data from https://writeonly.wordpress.com/2009/03/20/adjacency-list-of-states-of-the-united-states-us/
+  myfile2 <- openFile "/home/muggli/stateadj.txt" ReadMode
+  statecontents <- hGetContents myfile2
+  let mylines2 = lines statecontents
+  let mystates = map (splitOn [',']) mylines2
+  hClose myfile2
+  -- myfile <- openFile "/home/muggli/count_1w7.txt" ReadMode
+  -- contents <- hGetContents myfile
+  -- let mylines = lines contents
+  -- let mywords = map  (head . words ) mylines
+  -- let theindex = buildII mywords
+  -- putStrLn ("Map size: "  ++ (show $ index_size theindex))
+  -- putStrLn ("vocabulary: " ++  (show $ M.keys $ get_map theindex))
+  -- putStrLn ("query results for 'of': " ++ (show $ queryII (wordify "of") theindex))
+  -- --putStrLn $ show $ get_map theindex
+  -- -- putStrLn $ show $ wordify $ head mywords -- 
+  -- hClose myfile

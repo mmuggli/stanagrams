@@ -9,6 +9,7 @@ import Data.List.Split
 import qualified Data.Set as S
 import Data.Char (isAlpha, toLower)
 
+
 -- copied from https://rosettacode.org/wiki/Inverted_index#Haskell on Feb 3, 2021
 -- we swap (Char, Int) for String
 -- and String for FilePath
@@ -71,12 +72,14 @@ get_paths start num_remaining adjlist = let neighbors = S.elems (adjlist M.! sta
 
 lowercase = map toLower
 
-words_for_state adjlist state = fmap lowercase $ fmap concat $ get_paths state 3 adjlist
+filter_repeats  = filter (\x -> length  (group $ sort x) == 4)
+
+words_for_state adjlist state = fmap lowercase $ fmap concat $ filter_repeats $ get_paths state 3 adjlist
 
 main :: IO ()
 main = do
   -- grab the state adjacency data from https://writeonly.wordpress.com/2009/03/20/adjacency-list-of-states-of-the-united-states-us/
-  myfile2 <- openFile "/home/muggli/stateadjs.txt" ReadMode
+  myfile2 <- openFile "/home/muggli/stateadjsnodc.txt" ReadMode
   statecontents <- hGetContents myfile2
   let mylines2 = lines statecontents
   let mystates = map (splitOn [',']) mylines2
@@ -98,8 +101,12 @@ main = do
 --    putStrLn ("query results for 'of': " ++ (show $ queryII (wordify "of") theindex))
   let get_anagrams = (\targetword -> queryII (wordify targetword) theindex)
   let positive_paths = (filter (\z -> (length $ get_anagrams z) > 0) allwords)
+  let anagram_lists = (fmap get_anagrams  positive_paths) :: [[String]]
+  let all_anagrams = nub $ sort $  concat anagram_lists :: [String]
+  putStrLn ("Unique anagrams: " ++  (show  all_anagrams))
   let allstatewords = zip positive_paths (fmap get_anagrams  positive_paths)
-  putStrLn ("total stanagrams: " ++ (show $  allstatewords))
+  putStrLn ("num stanagrams: " ++ (show $ length allstatewords))
+  putStrLn ("stanagrams: " ++ (show $  allstatewords))
   --putStrLn $ show $ get_map theindex
   -- putStrLn $ show $ wordify $ head mywords -- 
   hClose myfile

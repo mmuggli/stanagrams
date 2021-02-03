@@ -60,10 +60,14 @@ make_adjlist sll = foldl f M.empty sll
 states :: [[String]] -> [String] 
 states sll = map head sll
 
--- get_paths :: String -> Int -> M.Map String (S.Set String) -> [[String]]
--- get_paths start 0 adjlist = [[start]]
--- get_paths start num_remaining adjlist = fmap (\x -> [start] : \x) (M.find start
+get_paths :: String -> Int -> M.Map String (S.Set String) -> [[String]]
+get_paths start 0 adjlist = [[start]]
+get_paths start num_remaining adjlist = let neighbors = S.elems (adjlist M.! start) :: [String]
+                                            suffixes = concat $ fmap f  neighbors :: [[String]]
+                                            f = (\state -> get_paths state (num_remaining - 1) adjlist) ::  String -> [[String]]
+                                        in fmap (start :) suffixes
 
+  
 main :: IO ()
 main = do
   -- grab the state adjacency data from https://writeonly.wordpress.com/2009/03/20/adjacency-list-of-states-of-the-united-states-us/
@@ -74,6 +78,7 @@ main = do
   let adjlist = make_adjlist mystates
   putStrLn ("States: " ++ (show $ states mystates))
   putStrLn ("keys: " ++ (show $ M.keys adjlist))
+  putStrLn ("CO paths len 4: " ++ (show $ get_paths "CO" 3 adjlist))
   hClose myfile2
   -- myfile <- openFile "/home/muggli/count_1w7.txt" ReadMode
   -- contents <- hGetContents myfile

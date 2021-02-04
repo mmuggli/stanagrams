@@ -9,7 +9,7 @@ import Data.List.Split
 import qualified Data.Set as S
 import Data.Char (isAlpha, toLower)
 
-path_length = 10
+pathLength = 11
 
 -- copied from https://rosettacode.org/wiki/Inverted_index#Haskell on Feb 3, 2021
 -- we swap (Char, Int) for String
@@ -26,11 +26,11 @@ buildII documents =
 
     -- add a document to a map
     -- f amap documentnum documentcontents
-  where f amap (document_num, document_contents) =
-            foldl g amap $ wordify document_contents
+  where f amap (documentNum, documentContents) =
+            foldl g amap $ wordify documentContents
 
             -- add a word to a map
-          where g amap word = M.insertWith IS.union word (IS.singleton document_num) amap
+          where g amap word = M.insertWith IS.union word (IS.singleton documentNum) amap
 
 queryII :: [(Char, Int)] -> IIndex -> [String]
 queryII q (IIndex documents m) =
@@ -50,32 +50,32 @@ wordify :: String -> [(Char, Int)]
 wordify s = let groups = group $ sort s in
               concat $ map enumerate groups
 
-index_size :: IIndex -> Int
-index_size (IIndex documents the_map) = M.size the_map
+indexSize :: IIndex -> Int
+indexSize (IIndex documents theMap) = M.size theMap
 
-get_map :: IIndex -> (M.Map (Char, Int) IS.IntSet)
-get_map (IIndex documents the_map) = the_map
+getMap :: IIndex -> (M.Map (Char, Int) IS.IntSet)
+getMap (IIndex documents theMap) = theMap
 
-make_adjlist :: [[String]] -> M.Map String (S.Set String)
-make_adjlist sll = foldl f M.empty sll
+makeAdjList :: [[String]] -> M.Map String (S.Set String)
+makeAdjList sll = foldl f M.empty sll
   where f amap sl = M.insert (head sl) (S.fromList $ tail sl) amap
 
 states :: [[String]] -> [String] 
 states sll = map head sll
 
-get_paths :: String -> Int -> M.Map String (S.Set String) -> [[String]]
-get_paths start 0 adjlist = [[start]]
-get_paths start num_remaining adjlist = let neighbors = S.elems (adjlist M.! start) :: [String]
+getPaths :: String -> Int -> M.Map String (S.Set String) -> [[String]]
+getPaths start 0 adjlist = [[start]]
+getPaths start numRemaining adjlist = let neighbors = S.elems (adjlist M.! start) :: [String]
                                             suffixes = concat $ fmap f  neighbors :: [[String]]
-                                            f = (\state -> get_paths state (num_remaining - 1) adjlist) ::  String -> [[String]]
+                                            f = (\state -> getPaths state (numRemaining - 1) adjlist) ::  String -> [[String]]
                                         in fmap (start :) suffixes
 
 
 lowercase = map toLower
 
-filter_repeats  = filter (\x -> length  (group $ sort x) == path_length)
+filterRepeats  = filter (\x -> length  (group $ sort x) == pathLength)
 
-words_for_state adjlist state = fmap lowercase $ fmap concat $ filter_repeats $ get_paths state (path_length - 1) adjlist
+wordsForState adjlist state = fmap lowercase $ fmap concat $ filterRepeats $ getPaths state (pathLength - 1) adjlist
 
 main :: IO ()
 main = do
@@ -84,11 +84,11 @@ main = do
   statecontents <- hGetContents myfile2
   let mylines2 = lines statecontents
   let mystates = map (splitOn [',']) mylines2
-  let adjlist = make_adjlist mystates
+  let adjlist = makeAdjList mystates
   putStrLn ("States: " ++ (show $ states mystates))
   putStrLn ("keys: " ++ (show $ M.keys adjlist))
---  putStrLn ("CO paths len 4: " ++ (show $ words_for_state  adjlist "CO"))
-  let allwords = concat $ fmap (words_for_state adjlist) $ states mystates
+--  putStrLn ("CO paths len 4: " ++ (show $ wordsForState  adjlist "CO"))
+  let allwords = concat $ fmap (wordsForState adjlist) $ states mystates
   putStrLn ("all words number: " ++ (show $ length $ allwords))
   hClose myfile2
   
@@ -96,18 +96,18 @@ main = do
   contents <- hGetContents myfile
   let mylines = lines contents
   let mywords = map  (head . words ) mylines
-  let theindex = buildII $ (filter (\y -> (path_length * 2) == length y)) mywords
-  putStrLn ("Map size: "  ++ (show $ index_size theindex))
-  putStrLn ("vocabulary: " ++  (show $ M.keys $ get_map theindex))
+  let theindex = buildII $ (filter (\y -> (pathLength * 2) == length y)) mywords
+  putStrLn ("Map size: "  ++ (show $ indexSize theindex))
+  putStrLn ("vocabulary: " ++  (show $ M.keys $ getMap theindex))
 --    putStrLn ("query results for 'of': " ++ (show $ queryII (wordify "of") theindex))
-  let get_anagrams = (\targetword -> queryII (wordify targetword) theindex)
-  let positive_paths = (filter (\z -> (length $ get_anagrams z) > 0) allwords)
-  let anagram_lists = (fmap get_anagrams  positive_paths) :: [[String]]
-  let all_anagrams = nub $ sort $  concat anagram_lists :: [String]
-  putStrLn ("Unique anagrams: " ++  (show  all_anagrams))
-  let allstatewords = zip positive_paths (fmap get_anagrams  positive_paths)
+  let getAnagrams = (\targetword -> queryII (wordify targetword) theindex)
+  let positivePaths = (filter (\z -> (length $ getAnagrams z) > 0) allwords)
+  let anagramLists = (fmap getAnagrams  positivePaths) :: [[String]]
+  let allAnagrams = nub $ sort $  concat anagramLists :: [String]
+  putStrLn ("Unique anagrams: " ++  (show  allAnagrams))
+  let allstatewords = zip positivePaths (fmap getAnagrams  positivePaths)
   putStrLn ("num stanagrams: " ++ (show $ length allstatewords))
   putStrLn ("stanagrams: " ++ (show $  allstatewords))
-  --putStrLn $ show $ get_map theindex
+  --putStrLn $ show $ getMap theindex
   -- putStrLn $ show $ wordify $ head mywords -- 
   hClose myfile

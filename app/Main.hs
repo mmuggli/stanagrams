@@ -9,6 +9,7 @@ import Data.List.Split
 import qualified Data.Set as S
 import Data.Char (isAlpha, toLower)
 
+path_length = 10
 
 -- copied from https://rosettacode.org/wiki/Inverted_index#Haskell on Feb 3, 2021
 -- we swap (Char, Int) for String
@@ -72,9 +73,9 @@ get_paths start num_remaining adjlist = let neighbors = S.elems (adjlist M.! sta
 
 lowercase = map toLower
 
-filter_repeats  = filter (\x -> length  (group $ sort x) == 4)
+filter_repeats  = filter (\x -> length  (group $ sort x) == path_length)
 
-words_for_state adjlist state = fmap lowercase $ fmap concat $ filter_repeats $ get_paths state 3 adjlist
+words_for_state adjlist state = fmap lowercase $ fmap concat $ filter_repeats $ get_paths state (path_length - 1) adjlist
 
 main :: IO ()
 main = do
@@ -86,7 +87,7 @@ main = do
   let adjlist = make_adjlist mystates
   putStrLn ("States: " ++ (show $ states mystates))
   putStrLn ("keys: " ++ (show $ M.keys adjlist))
-  putStrLn ("CO paths len 4: " ++ (show $ words_for_state  adjlist "CO"))
+--  putStrLn ("CO paths len 4: " ++ (show $ words_for_state  adjlist "CO"))
   let allwords = concat $ fmap (words_for_state adjlist) $ states mystates
   putStrLn ("all words number: " ++ (show $ length $ allwords))
   hClose myfile2
@@ -95,7 +96,7 @@ main = do
   contents <- hGetContents myfile
   let mylines = lines contents
   let mywords = map  (head . words ) mylines
-  let theindex = buildII $ (filter (\y -> 8 == length y)) mywords
+  let theindex = buildII $ (filter (\y -> (path_length * 2) == length y)) mywords
   putStrLn ("Map size: "  ++ (show $ index_size theindex))
   putStrLn ("vocabulary: " ++  (show $ M.keys $ get_map theindex))
 --    putStrLn ("query results for 'of': " ++ (show $ queryII (wordify "of") theindex))

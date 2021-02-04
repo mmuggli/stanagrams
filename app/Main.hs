@@ -66,9 +66,9 @@ states sll = map head sll
 getPaths :: String -> Int -> M.Map String (S.Set String) -> [[String]]
 getPaths start 0 adjlist = [[start]]
 getPaths start numRemaining adjlist = let neighbors = S.elems (adjlist M.! start) :: [String]
-                                            suffixes = concat $ fmap f  neighbors :: [[String]]
-                                            f = (\state -> getPaths state (numRemaining - 1) adjlist) ::  String -> [[String]]
-                                        in fmap (start :) suffixes
+                                          suffixes = concat $ fmap f  neighbors :: [[String]]
+                                          f = (\state -> getPaths state (numRemaining - 1) adjlist) ::  String -> [[String]]
+                                      in fmap (start :) suffixes
 
 
 lowercase = map toLower

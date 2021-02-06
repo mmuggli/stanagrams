@@ -1,3 +1,6 @@
+--{-# SCC "stillSpellableForLastState" #-}
+--{-# SCC "wordsForState" #-}
+--{-# SCC "getPathsInc" #-}
 module Main where
 
 import Lib
@@ -8,7 +11,8 @@ import qualified Data.IntSet as IS
 import Data.List.Split
 import qualified Data.Set as S
 import Data.Char (isAlpha, toLower)
-
+import Debug.Trace
+    
 pathLength = 11
 
 -- copied from https://rosettacode.org/wiki/Inverted_index#Haskell on Feb 3, 2021
@@ -47,9 +51,15 @@ enumerate :: String -> [(Char, Int)]
 enumerate s = zip s [0..]
 
 wordify :: String -> [(Char, Int)]
-wordify s = let groups = group $ sort s in
-              concat $ map enumerate groups
-
+-- wordify s = let groups = group $ sort s in
+--               concat $ map enumerate groups
+wordify s = wordify2 s M.empty
+          
+wordify2 :: String -> M.Map Char Int -> [(Char, Int)]
+wordify2 [] _ = []
+wordify2 (x:xs) m = let next = (M.findWithDefault (-1) x m) + 1
+                 in (x, next) : wordify2 xs (M.insert x next m)
+                     
 indexSize :: IIndex -> Int
 indexSize (IIndex documents theMap) = M.size theMap
 
@@ -118,14 +128,16 @@ main = do
 
   -- do DFS on adjacency list
   putStrLn "Doing DFS traversal of state adjacency graph..."
+
   let stillSpellableForLastState pathSoFar stillSpellable = let wordified = wordify pathSoFar
                                                                 partialStillSpellable = (M.findWithDefault IS.empty (last (init wordified)) (getMap theindex))  `IS.intersection` stillSpellable
                                                             in (M.findWithDefault IS.empty  (last wordified) (getMap theindex))  `IS.intersection` partialStillSpellable
 
-           
-  let wordsForState state = fmap lowercase $ fmap concat $ filterRepeats $ getPathsInc state (pathLength - 1) (stillSpellableForLastState state allSpellable) state
+
+  let wordsForState state = fmap lowercase $ fmap concat $ filterRepeats $ getPathsInc state (pathLength - 1) (stillSpellableForLastState state allSpellable) (trace state state)           
           where
             -- given a state, a length, and the set of words still spellable so far, return the state sequece suffixes
+            
             getPathsInc :: String -> Int -> IS.IntSet -> String ->  [[String]]
             getPathsInc start numRemaining stillSpellable pathSoFar
                         | stillSpellable == IS.empty = []

@@ -9,7 +9,7 @@ import Data.List.Split
 import qualified Data.Set as S
 import Data.Char (isAlpha, toLower)
 
-pathLength = 11
+pathLength = 5
 
 -- copied from https://rosettacode.org/wiki/Inverted_index#Haskell on Feb 3, 2021
 -- we swap (Char, Int) for String
@@ -63,6 +63,19 @@ makeAdjList sll = foldl f M.empty sll
 states :: [[String]] -> [String] 
 states sll = map head sll
 
+
+             
+-- getPathsInc :: String -> Int -> M.Map String (S.Set String) -> IS.IntSet -> [[String]]
+-- getPathsInc start 0 adjlist availDocs = if IS.size (availDocs `intersection` (M.findWithDefault IS.empty start (getMap theindex) )) > 0
+--                                         then [[start]], (availDocs `intersection` (M.findWithDefault IS.empty start (getMap theindex) ))
+--                                         else [[]], IS.empty
+                                             
+-- getPathsInc start numRemaining adjlist availDocs = let neighbors = S.elems (adjlist M.! start) :: [String]
+--                                           suffixes = concat $ fmap f  neighbors :: [[String]]
+--                                           f = (\state -> getPaths state (numRemaining - 1) adjlist) ::  String -> [[String]]
+--                                       in fmap (start :) suffixes
+
+             
 getPaths :: String -> Int -> M.Map String (S.Set String) -> [[String]]
 getPaths start 0 adjlist = [[start]]
 getPaths start numRemaining adjlist = let neighbors = S.elems (adjlist M.! start) :: [String]
@@ -75,7 +88,7 @@ lowercase = map toLower
 
 filterRepeats  = filter (\x -> length  (group $ sort x) == pathLength)
 
-wordsForState adjlist state = fmap lowercase $ fmap concat $ filterRepeats $ getPaths state (pathLength - 1) adjlist
+
 
 main :: IO ()
 main = do
@@ -87,19 +100,39 @@ main = do
   let adjlist = makeAdjList mystates
   putStrLn ("States: " ++ (show $ states mystates))
   putStrLn ("keys: " ++ (show $ M.keys adjlist))
---  putStrLn ("CO paths len 4: " ++ (show $ wordsForState  adjlist "CO"))
-  let allwords = concat $ fmap (wordsForState adjlist) $ states mystates
-  putStrLn ("all words number: " ++ (show $ length $ allwords))
-  hClose myfile2
-  
+
   myfile <- openFile "/home/muggli/count_1w.txt" ReadMode
   contents <- hGetContents myfile
   let mylines = lines contents
   let mywords = map  (head . words ) mylines
-  let theindex = buildII $ (filter (\y -> (pathLength * 2) == length y)) mywords
+  let validWords = (filter (\y -> (pathLength * 2) == length y)) mywords
+  let theindex = buildII $ validWords
+  let allSpellable = IS.fromList $ [0..(length validWords)] :: IS.IntSet
   putStrLn ("Map size: "  ++ (show $ indexSize theindex))
   putStrLn ("vocabulary: " ++  (show $ M.keys $ getMap theindex))
---    putStrLn ("query results for 'of': " ++ (show $ queryII (wordify "of") theindex))
+
+  let stillSpellableForLastState pathSoFar stillSpellable = let wordified = wordify pathSoFar
+                                                                partialStillSpellable = (M.findWithDefault IS.empty (last (init wordified)) (getMap theindex))  `IS.intersection` stillSpellable
+                                                            in (M.findWithDefault IS.empty  (last wordified) (getMap theindex))  `IS.intersection` partialStillSpellable
+
+           
+  let wordsForState adjlist state = fmap lowercase $ fmap concat $ filterRepeats $ getPathsInc state (pathLength - 1) (stillSpellableForLastState state allSpellable) state
+          where
+            -- given a state, a length, and the set of words still spellable so far, return the state sequece suffixes
+            getPathsInc :: String -> Int -> IS.IntSet -> String ->  [[String]]
+            getPathsInc start numRemaining stillSpellable pathSoFar
+                        | stillSpellable == IS.empty = []
+                        | numRemaining == 0 = [[start]]
+                        | otherwise =  let neighbors = S.elems (adjlist M.! start) :: [String]
+                                           suffixes = concat $ fmap f  neighbors :: [[String]]
+                                           f = (\state -> getPathsInc state (numRemaining - 1) (stillSpellableForLastState (pathSoFar ++ state) stillSpellable) (pathSoFar ++ state)) ::  String -> [[String]]
+                                       in fmap (start :) suffixes
+            
+  let allwords = concat $ fmap (wordsForState adjlist) $ states mystates
+  putStrLn ("all words number: " ++ (show $ length $ allwords))
+
+  
+
   let getAnagrams = (\targetword -> queryII (wordify targetword) theindex)
   let positivePaths = (filter (\z -> (length $ getAnagrams z) > 0) allwords)
   let anagramLists = (fmap getAnagrams  positivePaths) :: [[String]]
@@ -108,6 +141,6 @@ main = do
   let allstatewords = zip positivePaths (fmap getAnagrams  positivePaths)
   putStrLn ("num stanagrams: " ++ (show $ length allstatewords))
   putStrLn ("stanagrams: " ++ (show $  allstatewords))
-  --putStrLn $ show $ getMap theindex
-  -- putStrLn $ show $ wordify $ head mywords -- 
+
+  hClose myfile2           
   hClose myfile

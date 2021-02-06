@@ -12,8 +12,9 @@ import Data.List.Split
 import qualified Data.Set as S
 import Data.Char (isAlpha, toLower)
 import Debug.Trace
+import System.Environment
     
-pathLength = 11
+
 
 -- copied from https://rosettacode.org/wiki/Inverted_index#Haskell on Feb 3, 2021
 -- we swap (Char, Int) for String
@@ -96,13 +97,13 @@ getPaths start numRemaining adjlist = let neighbors = S.elems (adjlist M.! start
 
 lowercase = map toLower
 
-filterRepeats  = filter (\x -> length  (group $ sort x) == pathLength)
-
 
 
 main :: IO ()
 main = do
   -- load/parse adjacencies
+  pathLengthArg <-  getArgs
+  let pathLength =  if pathLengthArg == [] then 4 else read $ head pathLengthArg :: Int
   putStrLn ("Path length: " ++ (show pathLength))
   putStrLn "Loading state adjacency lists..."
   -- grab the state adjacency data from https://writeonly.wordpress.com/2009/03/20/adjacency-list-of-states-of-the-united-states-us/
@@ -134,7 +135,7 @@ main = do
                                                             in (M.findWithDefault IS.empty  (last wordified) (getMap theindex))  `IS.intersection` partialStillSpellable
 
 
-  let wordsForState state = fmap lowercase $ fmap concat $ filterRepeats $ getPathsInc state (pathLength - 1) (stillSpellableForLastState state allSpellable) (trace state state)           
+  let wordsForState state = fmap lowercase $ fmap concat $  getPathsInc state (pathLength - 1) (stillSpellableForLastState state allSpellable) state
           where
             -- given a state, a length, and the set of words still spellable so far, return the state sequece suffixes
             

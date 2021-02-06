@@ -92,7 +92,9 @@ filterRepeats  = filter (\x -> length  (group $ sort x) == pathLength)
 
 main :: IO ()
 main = do
+  -- load/parse adjacencies
   putStrLn ("Path length: " ++ (show pathLength))
+  putStrLn "Loading state adjacency lists..."
   -- grab the state adjacency data from https://writeonly.wordpress.com/2009/03/20/adjacency-list-of-states-of-the-united-states-us/
   myfile2 <- openFile "/home/muggli/stateadjsnodc.txt" ReadMode
   statecontents <- hGetContents myfile2
@@ -102,6 +104,8 @@ main = do
   putStrLn ("States: " ++ (show $ states mystates))
   putStrLn ("keys: " ++ (show $ M.keys adjlist))
 
+  -- load/parse word list
+  putStrLn "Loading word list..."
   myfile <- openFile "/home/muggli/count_1w.txt" ReadMode
   contents <- hGetContents myfile
   let mylines = lines contents
@@ -112,6 +116,8 @@ main = do
   putStrLn ("Map size: "  ++ (show $ indexSize theindex))
   putStrLn ("vocabulary: " ++  (show $ M.keys $ getMap theindex))
 
+  -- do DFS on adjacency list
+  putStrLn "Doing DFS traversal of state adjacency graph..."
   let stillSpellableForLastState pathSoFar stillSpellable = let wordified = wordify pathSoFar
                                                                 partialStillSpellable = (M.findWithDefault IS.empty (last (init wordified)) (getMap theindex))  `IS.intersection` stillSpellable
                                                             in (M.findWithDefault IS.empty  (last wordified) (getMap theindex))  `IS.intersection` partialStillSpellable
@@ -133,7 +139,7 @@ main = do
   putStrLn ("all words number: " ++ (show $ length $ allwords))
 
   
-
+  putStrLn "Finding anagrams for paths..."
   let getAnagrams = (\targetword -> queryII (wordify targetword) theindex)
   let positivePaths = (filter (\z -> (length $ getAnagrams z) > 0) allwords)
   let anagramLists = (fmap getAnagrams  positivePaths) :: [[String]]
